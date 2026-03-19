@@ -21,7 +21,7 @@ ProjectToScreen :: proc(mat: Matrix4x4, p: Vector3) -> Vector3 {
 	ndcY := clip.y * invW
 
 	screenX := (ndcX * 0.5 + 0.5) * SCREEN_WIDTH
-	screenY := (ndcY * 0.5 + 0.5) * SCREEN_HEIGHT
+	screenY := (-ndcY * 0.5 + 0.5) * SCREEN_HEIGHT
 
 
 	return Vector3{screenX, screenY, invW}

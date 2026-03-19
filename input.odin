@@ -19,12 +19,12 @@ HandleInputs :: proc(
 	if rl.IsKeyDown(rl.KeyboardKey.E) do translation.y += linearStep
 	if rl.IsKeyDown(rl.KeyboardKey.Q) do translation.y -= linearStep
 
-	if rl.IsKeyDown(rl.KeyboardKey.J) do translation.x -= angularStep
-	if rl.IsKeyDown(rl.KeyboardKey.L) do translation.x += angularStep
-	if rl.IsKeyDown(rl.KeyboardKey.O) do translation.y += angularStep
-	if rl.IsKeyDown(rl.KeyboardKey.U) do translation.y -= angularStep
-	if rl.IsKeyDown(rl.KeyboardKey.I) do translation.z += angularStep
-	if rl.IsKeyDown(rl.KeyboardKey.K) do translation.z -= angularStep
+	if rl.IsKeyDown(rl.KeyboardKey.J) do rotation.x -= angularStep
+	if rl.IsKeyDown(rl.KeyboardKey.L) do rotation.x += angularStep
+	if rl.IsKeyDown(rl.KeyboardKey.O) do rotation.y += angularStep
+	if rl.IsKeyDown(rl.KeyboardKey.U) do rotation.y -= angularStep
+	if rl.IsKeyDown(rl.KeyboardKey.I) do rotation.z += angularStep
+	if rl.IsKeyDown(rl.KeyboardKey.K) do rotation.z -= angularStep
 
 	if rl.IsKeyDown(rl.KeyboardKey.KP_ADD) do scale^ += linearStep
 	if rl.IsKeyDown(rl.KeyboardKey.KP_SUBTRACT) do scale^ -= linearStep

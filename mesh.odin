@@ -69,8 +69,8 @@ MakeCube :: proc() -> Mesh {
 		transformedNormals = make([]Vector3, 6),
 		vertices = vertices,
 		normals = normals,
-		uvs = uvs,
 		triangles = triangles,
+		uvs = uvs,
 	}
 }
 

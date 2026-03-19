@@ -14,10 +14,10 @@ Mat4MulVec3 :: proc(mat: Matrix4x4, vec: Vector3) -> Vector3 {
 }
 
 Mat4MulVec4 :: proc(mat: Matrix4x4, vec: Vector4) -> Vector4 {
-	x := (vec[0] * mat[0][0]) + (vec[1] * mat[0][1]) + (vec[2] * mat[0][2]) + (vec[3] * mat[0][3])
-	y := (vec[0] * mat[1][0]) + (vec[1] * mat[1][1]) + (vec[2] * mat[1][2]) + (vec[3] * mat[1][3])
-	z := (vec[0] * mat[2][0]) + (vec[1] * mat[2][1]) + (vec[2] * mat[2][2]) + (vec[3] * mat[2][3])
-	w := (vec[0] * mat[3][0]) + (vec[1] * mat[3][1]) + (vec[2] * mat[3][2]) + (vec[3] * mat[3][3])
+	x := (vec.x * mat[0][0]) + (vec.y * mat[0][1]) + (vec.z * mat[0][2]) + (vec.w * mat[0][3])
+	y := (vec.x * mat[1][0]) + (vec.y * mat[1][1]) + (vec.z * mat[1][2]) + (vec.w * mat[1][3])
+	z := (vec.x * mat[2][0]) + (vec.y * mat[2][1]) + (vec.z * mat[2][2]) + (vec.w * mat[2][3])
+	w := (vec.x * mat[3][0]) + (vec.y * mat[3][1]) + (vec.z * mat[3][2]) + (vec.w * mat[3][3])
 
 	return Vector4{x, y, z, w}
 }
