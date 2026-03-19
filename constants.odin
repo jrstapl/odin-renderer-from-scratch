@@ -8,3 +8,9 @@ SCREEN_HEIGHT :: 600
 // Math
 DEG_TO_RAD :: 0.01745329251 // pi/180
 
+// Rendering
+RENDER_MODES_COUNT :: 2
+FOV :: 70
+NEAR_PLANE :: 1.0
+FAR_PLANE :: 100.0
+
