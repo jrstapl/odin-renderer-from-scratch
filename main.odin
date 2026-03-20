@@ -46,6 +46,8 @@ main :: proc() {
 
 		rl.BeginDrawing()
 
+		ClearZBuffer(zBuffer)
+
 		switch renderMode {
 		case 0:
 			DrawWireframe(

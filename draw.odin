@@ -152,7 +152,7 @@ DrawFilledTriangle :: proc(p1, p2, p3: ^Vector3, color: rl.Color, zBuffer: ^ZBuf
 
 	}
 
-	if p3.y != p2.y {
+	if p3.y != p1.y {
 		invSlope1 := (p3.x - p2.x) / (p3.y - p2.y)
 		invSlope2 := (p3.x - p1.x) / (p3.y - p1.y)
 
@@ -182,8 +182,8 @@ BarycentricWeights :: proc(a, b, c, p: Vector2) -> Vector3 {
 	pb := b - p
 
 	area := (ac.x * ab.y - ac.y * ab.x)
-	alpha := (pc.x * pb.y - pb.y * pc.x)
-	beta := (ac.x * ap.y - ac.y * ap.x)
+	alpha := (pc.x * pb.y - pc.y * pb.x) / area
+	beta := (ac.x * ap.y - ac.y * ap.x) / area
 	gamma := (1.0 - alpha - beta)
 
 	return Vector3{alpha, beta, gamma}
@@ -199,8 +199,8 @@ DrawUnlit :: proc(
 
 	for &tri in triangles {
 		v1 := vertices[tri[0]]
-		v2 := vertices[tri[2]]
-		v3 := vertices[tri[3]]
+		v2 := vertices[tri[1]]
+		v3 := vertices[tri[2]]
 
 		if IsBackFace(v1, v2, v3) {
 			continue
