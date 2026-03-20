@@ -17,6 +17,8 @@ main :: proc() {
 	rotation := Vector3{0, 0, 0}
 	scale: f32 = 1
 
+	zBuffer := new(ZBuffer)
+
 	renderMode: i8 = RENDER_MODES_COUNT - 1
 
 	projectionMatrix := MakeProjectionMatrix(
@@ -60,6 +62,14 @@ main :: proc() {
 				projectionMatrix,
 				rl.GREEN,
 				true,
+			)
+		case 2:
+			DrawUnlit(
+				mesh.transformedVertices,
+				mesh.triangles,
+				projectionMatrix,
+				rl.WHITE,
+				zBuffer,
 			)
 		}
 

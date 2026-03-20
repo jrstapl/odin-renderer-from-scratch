@@ -13,6 +13,10 @@ IsBackFace :: proc(v1, v2, v3: Vector3) -> bool {
 	return Vector3DotProduct(crossNorm, toCamera) >= 0.0
 }
 
+IsPointOutsideViewport :: proc(x, y: i32) -> bool {
+	return x < 0 || x >= SCREEN_WIDTH || y < 0 || y >= SCREEN_HEIGHT
+}
+
 ProjectToScreen :: proc(mat: Matrix4x4, p: Vector3) -> Vector3 {
 	clip := Mat4MulVec4(mat, Vector4{p.x, p.y, p.z, 1})
 	invW: f32 = 1 / clip.w
@@ -94,6 +98,124 @@ DrawWireframe :: proc(
 		DrawLine(p2.xy, p3.xy, color)
 		DrawLine(p3.xy, p1.xy, color)
 
+	}
+}
+
+DrawPixel :: proc(x, y: f32, p1, p2, p3: ^Vector3, color: rl.Color, zBuffer: ^ZBuffer) {
+	ix := i32(x)
+	iy := i32(y)
+
+	if IsPointOutsideViewport(ix, iy) {
+		return
+	}
+
+	p := Vector2{x, y}
+	weights := BarycentricWeights(p1.xy, p2.xy, p3.xy, p)
+	alpha := weights.x
+	beta := weights.y
+	gamma := weights.z
+
+	denom := alpha * p1.z + beta * p2.z + gamma * p3.z
+	depth := 1.0 / denom
+
+	zIndex := SCREEN_WIDTH * iy + ix
+	if (depth < zBuffer[zIndex]) {
+		rl.DrawPixel(ix, iy, color)
+		zBuffer[zIndex] = depth
+	}
+
+
+}
+
+DrawFilledTriangle :: proc(p1, p2, p3: ^Vector3, color: rl.Color, zBuffer: ^ZBuffer) {
+	Sort(p1, p2, p3)
+	FloorXY(p1)
+	FloorXY(p2)
+	FloorXY(p3)
+
+	if p1.y != p2.y {
+		invSlope1 := (p2.x - p1.x) / (p2.y - p1.y)
+		invSlope2 := (p3.x - p1.x) / (p3.y - p1.y)
+
+		for y := p1.y; y <= p2.y; y += 1 {
+			xStart := p1.x + (y - p1.y) * invSlope1
+			xEnd := p1.x + (y - p1.y) * invSlope2
+			if xStart > xEnd {
+				xStart, xEnd = xEnd, xStart
+			}
+			for x := xStart; x <= xEnd; x += 1 {
+				DrawPixel(x, y, p1, p2, p3, color, zBuffer)
+			}
+
+		}
+
+
+	}
+
+	if p3.y != p2.y {
+		invSlope1 := (p3.x - p2.x) / (p3.y - p2.y)
+		invSlope2 := (p3.x - p1.x) / (p3.y - p1.y)
+
+
+		for y := p2.y; y <= p3.y; y += 1 {
+			xStart := p2.x + (y - p2.y) * invSlope1
+			xEnd := p1.x + (y - p1.y) * invSlope2
+
+			if xStart > xEnd {
+				xStart, xEnd = xEnd, xStart
+			}
+
+
+			for x := xStart; x <= xEnd; x += 1 {
+				DrawPixel(x, y, p1, p2, p3, color, zBuffer)
+			}
+		}
+
+	}
+}
+
+BarycentricWeights :: proc(a, b, c, p: Vector2) -> Vector3 {
+	ac := c - a
+	ab := b - a
+	ap := p - a
+	pc := c - p
+	pb := b - p
+
+	area := (ac.x * ab.y - ac.y * ab.x)
+	alpha := (pc.x * pb.y - pb.y * pc.x)
+	beta := (ac.x * ap.y - ac.y * ap.x)
+	gamma := (1.0 - alpha - beta)
+
+	return Vector3{alpha, beta, gamma}
+}
+
+DrawUnlit :: proc(
+	vertices: []Vector3,
+	triangles: []Triangle,
+	projMat: Matrix4x4,
+	color: rl.Color,
+	zBuffer: ^ZBuffer,
+) {
+
+	for &tri in triangles {
+		v1 := vertices[tri[0]]
+		v2 := vertices[tri[2]]
+		v3 := vertices[tri[3]]
+
+		if IsBackFace(v1, v2, v3) {
+			continue
+		}
+
+
+		p1 := ProjectToScreen(projMat, v1)
+		p2 := ProjectToScreen(projMat, v2)
+		p3 := ProjectToScreen(projMat, v3)
+
+		if IsFaceOutsideFrustum(p1, p2, p3) {
+			continue
+		}
+
+		DrawFilledTriangle(&p1, &p2, &p3, color, zBuffer)
 	}
 }
 

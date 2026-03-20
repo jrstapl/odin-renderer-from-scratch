@@ -29,3 +29,8 @@ Vector3DotProduct :: proc(v1, v2: Vector3) -> f32 {
 	return (v1[0] * v2[0]) + (v1[1] * v2[1]) + (v1[2] * v2[2])
 }
 
+FloorXY :: proc(v: ^Vector3) {
+	v.x = math.floor(v.x)
+	v.y = math.floor(v.y)
+}
+
