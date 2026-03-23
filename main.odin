@@ -29,6 +29,10 @@ main :: proc() {
 		FAR_PLANE,
 	)
 
+	light := MakeLight({0, 1, 0}, 1)
+
+	texture := LoadTextureFromFile("assets/uv_checker_512.png")
+
 
 	for !rl.WindowShouldClose() {
 		deltaTime := rl.GetFrameTime()
@@ -73,7 +77,36 @@ main :: proc() {
 				rl.WHITE,
 				zBuffer,
 			)
+		case 3:
+			DrawFlatShaded(
+				mesh.transformedVertices,
+				mesh.triangles,
+				projectionMatrix,
+				light,
+				rl.WHITE,
+				zBuffer,
+			)
+		case 4:
+			DrawTexturedUnlit(
+				mesh.transformedVertices,
+				mesh.triangles,
+				mesh.uvs,
+				texture,
+				zBuffer,
+				projectionMatrix,
+			)
+		case 5:
+			DrawTexturedFlatShaded(
+				mesh.transformedVertices,
+				mesh.triangles,
+				mesh.uvs,
+				light,
+				texture,
+				zBuffer,
+				projectionMatrix,
+			)
 		}
+
 
 		rl.EndDrawing()
 		rl.ClearBackground(rl.BLACK)
