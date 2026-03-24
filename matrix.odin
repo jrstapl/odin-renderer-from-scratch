@@ -106,7 +106,7 @@ MakeViewMatrix :: proc(eye: Vector3, target: Vector3) -> Matrix4x4 {
 
 }
 
-MakeProjectionMatrix :: proc(
+MakePerspectiveMatrix :: proc(
 	fov: f32,
 	screenWidth: i32,
 	screenHeight: i32,
@@ -121,6 +121,25 @@ MakeProjectionMatrix :: proc(
 		{0, f, 0, 0},
 		{0, 0, -far / (far - near), -1},
 		{0, 0, (-far * near) / (far - near), 0},
+	}
+}
+
+MakeOrthographicMatrix :: proc(
+	screenWidth: i32,
+	screenHeight: i32,
+	near: f32,
+	far: f32,
+) -> Matrix4x4 {
+	aspect := f32(screenWidth) / f32(screenHeight)
+	left := -aspect
+	right := +aspect
+	bottom :: -1.0
+	top :: +1.0
+	return Matrix4x4 {
+		{2 / (right - left), 0, 0, -(right + left) / (right - left)},
+		{0, 2 / (top - bottom), 0, -(top + bottom) / (top - bottom)},
+		{0, 0, -2 / (far - near), -(far + near) / (far - near)},
+		{0, 0, 0, 1},
 	}
 }
 

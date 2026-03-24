@@ -3,6 +3,13 @@ package main
 // Tutorial from https://marianpekar.com/
 import rl "vendor:raylib"
 
+
+ProjectionType :: enum {
+	Perspective,
+	Orthographic,
+}
+
+
 ApplyTransformations :: proc(transformed: ^[]Vector3, original: []Vector3, mat: Matrix4x4) {
 	for i in 0 ..< len(original) {
 		transformed[i] = Mat4MulVec3(mat, original[i])
@@ -22,8 +29,17 @@ main :: proc() {
 
 	renderMode: i8 = RENDER_MODES_COUNT - 1
 
-	projectionMatrix := MakeProjectionMatrix(
+	projectionMatrix: Matrix4x4
+	projectionType: ProjectionType = .Perspective
+
+	perspectiveMatrix := MakePerspectiveMatrix(
 		FOV,
+		SCREEN_WIDTH,
+		SCREEN_HEIGHT,
+		NEAR_PLANE,
+		FAR_PLANE,
+	)
+	orthographicMatrix := MakeOrthographicMatrix(
 		SCREEN_WIDTH,
 		SCREEN_HEIGHT,
 		NEAR_PLANE,
@@ -39,7 +55,22 @@ main :: proc() {
 
 	for !rl.WindowShouldClose() {
 		deltaTime := rl.GetFrameTime()
-		HandleInputs(&translation, &rotation, &scale, &renderMode, RENDER_MODES_COUNT, deltaTime)
+		HandleInputs(
+			&translation,
+			&rotation,
+			&scale,
+			&renderMode,
+			RENDER_MODES_COUNT,
+			&projectionType,
+			deltaTime,
+		)
+
+		switch projectionType {
+		case .Perspective:
+			projectionMatrix = perspectiveMatrix
+		case .Orthographic:
+			projectionMatrix = orthographicMatrix
+		}
 
 		translationMatrix := MakeTranslationMatrix(translation.x, translation.y, translation.z)
 		rotationMatrix := MakeRotationMatrix(rotation.x, rotation.y, rotation.z)
@@ -62,6 +93,7 @@ main :: proc() {
 				mesh.transformedVertices,
 				mesh.triangles,
 				projectionMatrix,
+				projectionType,
 				rl.GREEN,
 				false,
 				&renderImage,
@@ -71,6 +103,7 @@ main :: proc() {
 				mesh.transformedVertices,
 				mesh.triangles,
 				projectionMatrix,
+				projectionType,
 				rl.GREEN,
 				true,
 				&renderImage,
@@ -80,6 +113,7 @@ main :: proc() {
 				mesh.transformedVertices,
 				mesh.triangles,
 				projectionMatrix,
+				projectionType,
 				rl.WHITE,
 				zBuffer,
 				&renderImage,
@@ -89,6 +123,7 @@ main :: proc() {
 				mesh.transformedVertices,
 				mesh.triangles,
 				projectionMatrix,
+				projectionType,
 				light,
 				rl.WHITE,
 				zBuffer,
@@ -102,6 +137,7 @@ main :: proc() {
 				texture,
 				zBuffer,
 				projectionMatrix,
+				projectionType,
 				&renderImage,
 			)
 		case 5:
@@ -113,6 +149,7 @@ main :: proc() {
 				texture,
 				zBuffer,
 				projectionMatrix,
+				projectionType,
 				&renderImage,
 			)
 		case 6:
@@ -124,6 +161,7 @@ main :: proc() {
 				rl.WHITE,
 				zBuffer,
 				projectionMatrix,
+				projectionType,
 				&renderImage,
 			)
 		case 7:
@@ -136,6 +174,7 @@ main :: proc() {
 				texture,
 				zBuffer,
 				projectionMatrix,
+				projectionType,
 				&renderImage,
 			)
 		}

@@ -7,6 +7,7 @@ HandleInputs :: proc(
 	scale: ^f32,
 	renderMode: ^i8,
 	renderModesCount: i8,
+	projType: ^ProjectionType,
 	deltaTime: f32,
 ) {
 	linearStep: f32 = (rl.IsKeyDown(rl.KeyboardKey.LEFT_SHIFT) ? 0.25 : 1) * deltaTime
@@ -33,6 +34,13 @@ HandleInputs :: proc(
 		renderMode^ = (renderMode^ + renderModesCount - 1) % renderModesCount
 	} else if rl.IsKeyPressed(rl.KeyboardKey.RIGHT) {
 		renderMode^ = (renderMode^ + 1) % renderModesCount
+	}
+
+	if rl.IsKeyPressed(rl.KeyboardKey.KP_0) {
+		projType^ = .Perspective
+	}
+	if rl.IsKeyPressed(rl.KeyboardKey.KP_1) {
+		projType^ = .Orthographic
 	}
 
 }
