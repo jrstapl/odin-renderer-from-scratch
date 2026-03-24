@@ -141,7 +141,7 @@ DrawTexelFlatShaded :: proc(
 	p1, p2, p3: ^Vector3,
 	uv1, uv2, uv3: ^Vector2,
 	texture: Texture,
-	intensity: f32,
+	light: Vector3,
 	zBuffer: ^ZBuffer,
 	image: ^rl.Image,
 ) {
@@ -175,9 +175,9 @@ DrawTexelFlatShaded :: proc(
 		tex := texture.pixels[texY * texture.width + texX]
 
 		shadedTex := rl.Color {
-			u8(f32(tex.r) * intensity),
-			u8(f32(tex.g) * intensity),
-			u8(f32(tex.b) * intensity),
+			u8(f32(tex.r) * light.r),
+			u8(f32(tex.g) * light.g),
+			u8(f32(tex.b) * light.b),
 			tex.a,
 		}
 
@@ -190,10 +190,10 @@ DrawPixelPhongShaded :: proc(
 	x, y: f32,
 	v1, v2, v3, n1, n2, n3, p1, p2, p3: ^Vector3,
 	color: rl.Color,
-	light: Light,
+	lights: []Light,
 	zBuffer: ^ZBuffer,
 	image: ^rl.Image,
-	ambient: f32 = 0.2,
+	ambient: Vector3,
 ) {
 	ix := i32(x)
 	iy := i32(y)
@@ -215,13 +215,23 @@ DrawPixelPhongShaded :: proc(
 	if (depth < zBuffer[zIndex]) {
 		interpNormal := Vector3Normalize(n1^ * alpha + n2^ * beta + n3^ * gamma)
 		interpPos := ((v1^ * p1.z) * alpha + (v2^ * p2.z) * beta + (v3^ * p3.z) * gamma) * depth
-		rayDir := Vector3Normalize(light.position - interpPos)
-		intensity := Vector3DotProduct(interpNormal, rayDir) * light.strength
-		intensity = math.clamp(intensity, ambient, 1.0)
+		lightAccum := ambient
+		for &light in lights {
+			lightVec := Vector3Normalize(light.position - interpPos)
+			diffuse := math.max(0.0, Vector3DotProduct(interpNormal, lightVec))
+			lightAccum.r += diffuse * light.color.r * light.color.a
+			lightAccum.g += diffuse * light.color.g * light.color.a
+			lightAccum.b += diffuse * light.color.b * light.color.a
+		}
+
+		lightAccum.r = math.min(lightAccum.r, 1.0)
+		lightAccum.g = math.min(lightAccum.g, 1.0)
+		lightAccum.b = math.min(lightAccum.b, 1.0)
+
 		shadedColor := rl.Color {
-			u8(f32(color.r) * intensity),
-			u8(f32(color.g) * intensity),
-			u8(f32(color.b) * intensity),
+			u8(f32(color.r) * lightAccum.r),
+			u8(f32(color.g) * lightAccum.g),
+			u8(f32(color.b) * lightAccum.b),
 			color.a,
 		}
 		rl.ImageDrawPixel(image, ix, iy, shadedColor)
@@ -235,10 +245,10 @@ DrawTexelPhongShaded :: proc(
 	uv1, uv2, uv3: ^Vector2,
 	p1, p2, p3: ^Vector3,
 	texture: Texture,
-	light: Light,
+	lights: []Light,
 	zBuffer: ^ZBuffer,
 	image: ^rl.Image,
-	ambient: f32 = 0.2,
+	ambient: Vector3,
 ) {
 	ix := i32(x)
 	iy := i32(y)
@@ -269,13 +279,23 @@ DrawTexelPhongShaded :: proc(
 		tex := texture.pixels[texY * texture.width + texX]
 		interpNormal := Vector3Normalize(n1^ * alpha + n2^ * beta + n3^ * gamma)
 		interpPos := ((v1^ * p1.z) * alpha + (v2^ * p2.z) * beta + (v3^ * p3.z) * gamma) * depth
-		rayDir := Vector3Normalize(light.position - interpPos)
-		intensity := Vector3DotProduct(interpNormal, rayDir) * light.strength
-		intensity = math.clamp(intensity, ambient, 1.0)
+		lightAccum := ambient
+		for &light in lights {
+			lightVec := Vector3Normalize(light.position - interpPos)
+			diffuse := math.max(0.0, Vector3DotProduct(interpNormal, lightVec))
+			lightAccum.r += diffuse * light.color.r * light.color.a
+			lightAccum.g += diffuse * light.color.g * light.color.a
+			lightAccum.b += diffuse * light.color.b * light.color.a
+		}
+
+		lightAccum.r = math.min(lightAccum.r, 1.0)
+		lightAccum.g = math.min(lightAccum.g, 1.0)
+		lightAccum.b = math.min(lightAccum.b, 1.0)
+
 		shadedColor := rl.Color {
-			u8(f32(tex.r) * intensity),
-			u8(f32(tex.g) * intensity),
-			u8(f32(tex.b) * intensity),
+			u8(f32(tex.r) * lightAccum.r),
+			u8(f32(tex.g) * lightAccum.g),
+			u8(f32(tex.b) * lightAccum.b),
 			tex.a,
 		}
 		rl.ImageDrawPixel(image, ix, iy, shadedColor)
@@ -341,7 +361,7 @@ DrawTexturedTriangleFlatShaded :: proc(
 	p1, p2, p3: ^Vector3,
 	uv1, uv2, uv3: ^Vector2,
 	texture: Texture,
-	intensity: f32,
+	light: Vector3,
 	zBuffer: ^ZBuffer,
 	image: ^rl.Image,
 ) {
@@ -371,7 +391,7 @@ DrawTexturedTriangleFlatShaded :: proc(
 					uv2,
 					uv3,
 					texture,
-					intensity,
+					light,
 					zBuffer,
 					image,
 				)
@@ -407,7 +427,7 @@ DrawTexturedTriangleFlatShaded :: proc(
 					uv2,
 					uv3,
 					texture,
-					intensity,
+					light,
 					zBuffer,
 					image,
 				)
@@ -422,10 +442,10 @@ DrawTrianglePhongShaded :: proc(
 	p1, p2, p3: ^Vector3,
 	n1, n2, n3: ^Vector3,
 	color: rl.Color,
-	light: Light,
+	lights: []Light,
 	zBuffer: ^ZBuffer,
 	image: ^rl.Image,
-	ambient: f32 = 0.2,
+	ambient: Vector3,
 ) {
 	Sort(p1, p2, p3, v1, v2, v3)
 
@@ -458,7 +478,7 @@ DrawTrianglePhongShaded :: proc(
 					p2,
 					p3,
 					color,
-					light,
+					lights,
 					zBuffer,
 					image,
 					ambient,
@@ -498,7 +518,7 @@ DrawTrianglePhongShaded :: proc(
 					p2,
 					p3,
 					color,
-					light,
+					lights,
 					zBuffer,
 					image,
 					ambient,
@@ -517,10 +537,10 @@ DrawTexturedTrianglePhongShaded :: proc(
 	uv1, uv2, uv3: ^Vector2,
 	n1, n2, n3: ^Vector3,
 	texture: Texture,
-	light: Light,
+	lights: []Light,
 	zBuffer: ^ZBuffer,
 	image: ^rl.Image,
-	ambient: f32 = 0.2,
+	ambient: Vector3,
 ) {
 	Sort(p1, p2, p3, uv1, uv2, uv3, v1, v2, v3)
 
@@ -556,7 +576,7 @@ DrawTexturedTrianglePhongShaded :: proc(
 					p2,
 					p3,
 					texture,
-					light,
+					lights,
 					zBuffer,
 					image,
 					ambient,
@@ -599,7 +619,7 @@ DrawTexturedTrianglePhongShaded :: proc(
 					p2,
 					p3,
 					texture,
-					light,
+					lights,
 					zBuffer,
 					image,
 					ambient,
@@ -683,11 +703,11 @@ DrawFlatShaded :: proc(
 	triangles: []Triangle,
 	projMat: Matrix4x4,
 	projType: ProjectionType,
-	light: Light,
+	lights: []Light,
 	color: rl.Color,
 	zBuffer: ^ZBuffer,
 	image: ^rl.Image,
-	ambient: f32 = 0.2,
+	ambient: Vector3,
 ) {
 	for &tri in triangles {
 		v1 := vertices[tri[0]]
@@ -717,12 +737,23 @@ DrawFlatShaded :: proc(
 			continue
 		}
 
-		intensity := math.clamp(Vector3DotProduct(crossNorm, light.direction), ambient, 1.0)
+		lightAccum := ambient
+		for &light in lights {
+			diffuse := math.max(0.0, Vector3DotProduct(crossNorm, light.direction))
+			lightAccum.r += diffuse * light.color.r * light.color.a
+			lightAccum.g += diffuse * light.color.g * light.color.a
+			lightAccum.b += diffuse * light.color.b * light.color.a
+		}
+
+		lightAccum.r = math.min(lightAccum.r, 1.0)
+		lightAccum.g = math.min(lightAccum.g, 1.0)
+		lightAccum.b = math.min(lightAccum.b, 1.0)
+
 
 		shadedColor := rl.Color {
-			u8(f32(color.r) * intensity),
-			u8(f32(color.g) * intensity),
-			u8(f32(color.b) * intensity),
+			u8(f32(color.r) * lightAccum.r),
+			u8(f32(color.g) * lightAccum.g),
+			u8(f32(color.b) * lightAccum.b),
 			color.a,
 		}
 
@@ -735,13 +766,13 @@ DrawTexturedFlatShaded :: proc(
 	vertices: []Vector3,
 	triangles: []Triangle,
 	uvs: []Vector2,
-	light: Light,
+	lights: []Light,
 	texture: Texture,
 	zBuffer: ^ZBuffer,
 	projMat: Matrix4x4,
 	projType: ProjectionType,
 	image: ^rl.Image,
-	ambient: f32 = 0.2,
+	ambient: Vector3,
 ) {
 	for &tri in triangles {
 		v1 := vertices[tri[0]]
@@ -775,7 +806,18 @@ DrawTexturedFlatShaded :: proc(
 			continue
 		}
 
-		intensity := math.clamp(Vector3DotProduct(crossNorm, light.direction), ambient, 1.0)
+		lightAccum := ambient
+		for &light in lights {
+			diffuse := math.max(0.0, Vector3DotProduct(crossNorm, light.direction))
+			lightAccum.r += diffuse * light.color.r * light.color.a
+			lightAccum.g += diffuse * light.color.g * light.color.a
+			lightAccum.b += diffuse * light.color.b * light.color.a
+		}
+
+		lightAccum.r = math.min(lightAccum.r, 1.0)
+		lightAccum.g = math.min(lightAccum.g, 1.0)
+		lightAccum.b = math.min(lightAccum.b, 1.0)
+
 
 		DrawTexturedTriangleFlatShaded(
 			&p1,
@@ -785,7 +827,7 @@ DrawTexturedFlatShaded :: proc(
 			&uv2,
 			&uv3,
 			texture,
-			intensity,
+			lightAccum,
 			zBuffer,
 			image,
 		)
@@ -846,13 +888,13 @@ DrawPhongShaded :: proc(
 	vertices: []Vector3,
 	triangles: []Triangle,
 	normals: []Vector3,
-	light: Light,
+	lights: []Light,
 	color: rl.Color,
 	zBuffer: ^ZBuffer,
 	projMat: Matrix4x4,
 	projType: ProjectionType,
 	image: ^rl.Image,
-	ambient: f32 = 0.2,
+	ambient: Vector3,
 ) {
 
 	for &tri in triangles {
@@ -889,7 +931,7 @@ DrawPhongShaded :: proc(
 			&n2,
 			&n3,
 			color,
-			light,
+			lights,
 			zBuffer,
 			image,
 			ambient,
@@ -902,13 +944,13 @@ DrawTexturedPhongShaded :: proc(
 	triangles: []Triangle,
 	uvs: []Vector2,
 	normals: []Vector3,
-	light: Light,
+	lights: []Light,
 	texture: Texture,
 	zBuffer: ^ZBuffer,
 	projMat: Matrix4x4,
 	projType: ProjectionType,
 	image: ^rl.Image,
-	ambient: f32 = 0.2,
+	ambient: Vector3,
 ) {
 
 	for &tri in triangles {
@@ -952,7 +994,7 @@ DrawTexturedPhongShaded :: proc(
 			&n2,
 			&n3,
 			texture,
-			light,
+			lights,
 			zBuffer,
 			image,
 			ambient,

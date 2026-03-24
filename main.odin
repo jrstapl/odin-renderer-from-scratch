@@ -46,7 +46,12 @@ main :: proc() {
 		FAR_PLANE,
 	)
 
-	light := MakeLight(camera.position, {0, 1, 0}, 1)
+	red_light := MakeLight({-4, 0, -3}, {1, 1, 0}, {1, 0, 0, 1})
+	green_light := MakeLight({4, 0, -3}, {-1, -1, 0}, {0, 1, 0, 1})
+	lights := []Light{red_light, green_light}
+	ambient := Vector3{0.2, 0.2, 0.2}
+	ambient2 := Vector3{0.1, 0.1, 0.2}
+
 
 	renderImage := rl.GenImageColor(SCREEN_WIDTH, SCREEN_HEIGHT, rl.LIGHTGRAY)
 	renderTexture := rl.LoadTextureFromImage(renderImage)
@@ -124,10 +129,11 @@ main :: proc() {
 				mesh.triangles,
 				projectionMatrix,
 				projectionType,
-				light,
+				lights,
 				rl.WHITE,
 				zBuffer,
 				&renderImage,
+				ambient,
 			)
 		case 4:
 			DrawTexturedUnlit(
@@ -145,24 +151,26 @@ main :: proc() {
 				mesh.transformedVertices,
 				mesh.triangles,
 				mesh.uvs,
-				light,
+				lights,
 				texture,
 				zBuffer,
 				projectionMatrix,
 				projectionType,
 				&renderImage,
+				ambient2,
 			)
 		case 6:
 			DrawPhongShaded(
 				mesh.transformedVertices,
 				mesh.triangles,
 				mesh.transformedNormals,
-				light,
+				lights,
 				rl.WHITE,
 				zBuffer,
 				projectionMatrix,
 				projectionType,
 				&renderImage,
+				ambient,
 			)
 		case 7:
 			DrawTexturedPhongShaded(
@@ -170,12 +178,13 @@ main :: proc() {
 				mesh.triangles,
 				mesh.uvs,
 				mesh.transformedNormals,
-				light,
+				lights,
 				texture,
 				zBuffer,
 				projectionMatrix,
 				projectionType,
 				&renderImage,
+				ambient2,
 			)
 		}
 
