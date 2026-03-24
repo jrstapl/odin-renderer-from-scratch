@@ -11,7 +11,8 @@ ApplyTransformations :: proc(transformed: ^[]Vector3, original: []Vector3, mat: 
 
 main :: proc() {
 	rl.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Renderer")
-	mesh := MakeCube()
+	// mesh := MakeCube()
+	mesh := LoadMeshFromObjFile("assets/monkey.obj")
 	camera := MakeCamera({0, 0, -3}, {0, 0, -1})
 	translation := Vector3{0, 0, 0}
 	rotation := Vector3{0, 0, 0}
