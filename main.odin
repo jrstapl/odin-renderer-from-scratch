@@ -32,6 +32,8 @@ main :: proc() {
 
 	light := MakeLight(camera.position, {0, 1, 0}, 1)
 
+	renderImage := rl.GenImageColor(SCREEN_WIDTH, SCREEN_HEIGHT, rl.LIGHTGRAY)
+	renderTexture := rl.LoadTextureFromImage(renderImage)
 	texture := LoadTextureFromFile("assets/uv_checker_512.png")
 
 
@@ -62,6 +64,7 @@ main :: proc() {
 				projectionMatrix,
 				rl.GREEN,
 				false,
+				&renderImage,
 			)
 		case 1:
 			DrawWireframe(
@@ -70,6 +73,7 @@ main :: proc() {
 				projectionMatrix,
 				rl.GREEN,
 				true,
+				&renderImage,
 			)
 		case 2:
 			DrawUnlit(
@@ -78,6 +82,7 @@ main :: proc() {
 				projectionMatrix,
 				rl.WHITE,
 				zBuffer,
+				&renderImage,
 			)
 		case 3:
 			DrawFlatShaded(
@@ -87,6 +92,7 @@ main :: proc() {
 				light,
 				rl.WHITE,
 				zBuffer,
+				&renderImage,
 			)
 		case 4:
 			DrawTexturedUnlit(
@@ -96,6 +102,7 @@ main :: proc() {
 				texture,
 				zBuffer,
 				projectionMatrix,
+				&renderImage,
 			)
 		case 5:
 			DrawTexturedFlatShaded(
@@ -106,6 +113,7 @@ main :: proc() {
 				texture,
 				zBuffer,
 				projectionMatrix,
+				&renderImage,
 			)
 		case 6:
 			DrawPhongShaded(
@@ -116,6 +124,7 @@ main :: proc() {
 				rl.WHITE,
 				zBuffer,
 				projectionMatrix,
+				&renderImage,
 			)
 		case 7:
 			DrawTexturedPhongShaded(
@@ -127,14 +136,16 @@ main :: proc() {
 				texture,
 				zBuffer,
 				projectionMatrix,
+				&renderImage,
 			)
 		}
 
 
+		rl.UpdateTexture(renderTexture, renderImage.data)
+		rl.DrawTexture(renderTexture, 0, 0, rl.WHITE)
 		rl.DrawFPS(10, 10)
-
 		rl.EndDrawing()
-		rl.ClearBackground(rl.BLACK)
+		rl.ImageClearBackground(&renderImage, rl.BLACK)
 	}
 
 	rl.CloseWindow()
