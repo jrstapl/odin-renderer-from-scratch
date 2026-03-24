@@ -165,6 +165,101 @@ DrawTexelFlatShaded :: proc(
 	}
 }
 
+DrawPixelPhongShaded :: proc(
+	x, y: f32,
+	v1, v2, v3, n1, n2, n3, p1, p2, p3: ^Vector3,
+	color: rl.Color,
+	light: Light,
+	zBuffer: ^ZBuffer,
+	ambient: f32 = 0.2,
+) {
+	ix := i32(x)
+	iy := i32(y)
+
+	if IsPointOutsideViewport(ix, iy) {
+		return
+	}
+
+	p := Vector2{x, y}
+	weights := BarycentricWeights(p1.xy, p2.xy, p3.xy, p)
+	alpha := weights.x
+	beta := weights.y
+	gamma := weights.z
+
+	denom := alpha * p1.z + beta * p2.z + gamma * p3.z
+	depth := 1.0 / denom
+
+	zIndex := SCREEN_WIDTH * iy + ix
+	if (depth < zBuffer[zIndex]) {
+		interpNormal := Vector3Normalize(n1^ * alpha + n2^ * beta + n3^ * gamma)
+		interpPos := ((v1^ * p1.z) * alpha + (v2^ * p2.z) * beta + (v3^ * p3.z) * gamma) * depth
+		rayDir := Vector3Normalize(light.position - interpPos)
+		intensity := Vector3DotProduct(interpNormal, rayDir) * light.strength
+		intensity = math.clamp(intensity, ambient, 1.0)
+		shadedColor := rl.Color {
+			u8(f32(color.r) * intensity),
+			u8(f32(color.g) * intensity),
+			u8(f32(color.b) * intensity),
+			color.a,
+		}
+		rl.DrawPixel(ix, iy, shadedColor)
+		zBuffer[zIndex] = depth
+	}
+}
+
+DrawTexelPhongShaded :: proc(
+	x, y: f32,
+	v1, v2, v3, n1, n2, n3: ^Vector3,
+	uv1, uv2, uv3: ^Vector2,
+	p1, p2, p3: ^Vector3,
+	texture: Texture,
+	light: Light,
+	zBuffer: ^ZBuffer,
+	ambient: f32 = 0.2,
+) {
+	ix := i32(x)
+	iy := i32(y)
+
+	if IsPointOutsideViewport(ix, iy) {
+		return
+	}
+
+	p := Vector2{x, y}
+	weights := BarycentricWeights(p1.xy, p2.xy, p3.xy, p)
+	alpha := weights.x
+	beta := weights.y
+	gamma := weights.z
+
+	denom := alpha * p1.z + beta * p2.z + gamma * p3.z
+	depth := 1.0 / denom
+
+	zIndex := SCREEN_WIDTH * iy + ix
+	if (depth < zBuffer[zIndex]) {
+		interpU :=
+			((uv1.x * p1.z) * alpha + (uv2.x * p2.z) * beta + (uv3.x * p3.z) * gamma) * depth
+		interpV :=
+			((uv1.y * p1.z) * alpha + (uv2.y * p2.z) * beta + (uv3.y * p3.z) * gamma) * depth
+
+		texX := i32(interpU * f32(texture.width)) % texture.width
+		texY := i32(interpV * f32(texture.height)) % texture.height
+
+		tex := texture.pixels[texY * texture.width + texX]
+		interpNormal := Vector3Normalize(n1^ * alpha + n2^ * beta + n3^ * gamma)
+		interpPos := ((v1^ * p1.z) * alpha + (v2^ * p2.z) * beta + (v3^ * p3.z) * gamma) * depth
+		rayDir := Vector3Normalize(light.position - interpPos)
+		intensity := Vector3DotProduct(interpNormal, rayDir) * light.strength
+		intensity = math.clamp(intensity, ambient, 1.0)
+		shadedColor := rl.Color {
+			u8(f32(tex.r) * intensity),
+			u8(f32(tex.g) * intensity),
+			u8(f32(tex.b) * intensity),
+			tex.a,
+		}
+		rl.DrawPixel(ix, iy, shadedColor)
+		zBuffer[zIndex] = depth
+	}
+}
+
 
 DrawFilledTriangle :: proc(p1, p2, p3: ^Vector3, color: rl.Color, zBuffer: ^ZBuffer) {
 	Sort(p1, p2, p3)
@@ -261,6 +356,193 @@ DrawTexturedTriangleFlatShaded :: proc(
 
 			for x := xStart; x <= xEnd; x += 1 {
 				DrawTexelFlatShaded(x, y, p1, p2, p3, uv1, uv2, uv3, texture, intensity, zBuffer)
+			}
+		}
+
+	}
+}
+
+DrawTrianglePhongShaded :: proc(
+	v1, v2, v3: ^Vector3,
+	p1, p2, p3: ^Vector3,
+	n1, n2, n3: ^Vector3,
+	color: rl.Color,
+	light: Light,
+	zBuffer: ^ZBuffer,
+	ambient: f32 = 0.2,
+) {
+	Sort(p1, p2, p3, v1, v2, v3)
+
+	FloorXY(p1)
+	FloorXY(p2)
+	FloorXY(p3)
+
+
+	if p1.y != p2.y {
+		invSlope1 := (p2.x - p1.x) / (p2.y - p1.y)
+		invSlope2 := (p3.x - p1.x) / (p3.y - p1.y)
+
+		for y := p1.y; y <= p2.y; y += 1 {
+			xStart := p1.x + (y - p1.y) * invSlope1
+			xEnd := p1.x + (y - p1.y) * invSlope2
+			if xStart > xEnd {
+				xStart, xEnd = xEnd, xStart
+			}
+			for x := xStart; x <= xEnd; x += 1 {
+				DrawPixelPhongShaded(
+					x,
+					y,
+					v1,
+					v2,
+					v3,
+					n1,
+					n2,
+					n3,
+					p1,
+					p2,
+					p3,
+					color,
+					light,
+					zBuffer,
+					ambient,
+				)
+			}
+
+		}
+
+
+	}
+
+	if p3.y != p1.y {
+		invSlope1 := (p3.x - p2.x) / (p3.y - p2.y)
+		invSlope2 := (p3.x - p1.x) / (p3.y - p1.y)
+
+
+		for y := p2.y; y <= p3.y; y += 1 {
+			xStart := p2.x + (y - p2.y) * invSlope1
+			xEnd := p1.x + (y - p1.y) * invSlope2
+
+			if xStart > xEnd {
+				xStart, xEnd = xEnd, xStart
+			}
+
+
+			for x := xStart; x <= xEnd; x += 1 {
+				DrawPixelPhongShaded(
+					x,
+					y,
+					v1,
+					v2,
+					v3,
+					n1,
+					n2,
+					n3,
+					p1,
+					p2,
+					p3,
+					color,
+					light,
+					zBuffer,
+					ambient,
+				)
+			}
+		}
+
+	}
+
+
+}
+
+DrawTexturedTrianglePhongShaded :: proc(
+	v1, v2, v3: ^Vector3,
+	p1, p2, p3: ^Vector3,
+	uv1, uv2, uv3: ^Vector2,
+	n1, n2, n3: ^Vector3,
+	texture: Texture,
+	light: Light,
+	zBuffer: ^ZBuffer,
+	ambient: f32 = 0.2,
+) {
+	Sort(p1, p2, p3, uv1, uv2, uv3, v1, v2, v3)
+
+	FloorXY(p1)
+	FloorXY(p2)
+	FloorXY(p3)
+
+
+	if p1.y != p2.y {
+		invSlope1 := (p2.x - p1.x) / (p2.y - p1.y)
+		invSlope2 := (p3.x - p1.x) / (p3.y - p1.y)
+
+		for y := p1.y; y <= p2.y; y += 1 {
+			xStart := p1.x + (y - p1.y) * invSlope1
+			xEnd := p1.x + (y - p1.y) * invSlope2
+			if xStart > xEnd {
+				xStart, xEnd = xEnd, xStart
+			}
+			for x := xStart; x <= xEnd; x += 1 {
+				DrawTexelPhongShaded(
+					x,
+					y,
+					v1,
+					v2,
+					v3,
+					n1,
+					n2,
+					n3,
+					uv1,
+					uv2,
+					uv3,
+					p1,
+					p2,
+					p3,
+					texture,
+					light,
+					zBuffer,
+					ambient,
+				)
+			}
+
+		}
+
+
+	}
+
+	if p3.y != p1.y {
+		invSlope1 := (p3.x - p2.x) / (p3.y - p2.y)
+		invSlope2 := (p3.x - p1.x) / (p3.y - p1.y)
+
+
+		for y := p2.y; y <= p3.y; y += 1 {
+			xStart := p2.x + (y - p2.y) * invSlope1
+			xEnd := p1.x + (y - p1.y) * invSlope2
+
+			if xStart > xEnd {
+				xStart, xEnd = xEnd, xStart
+			}
+
+
+			for x := xStart; x <= xEnd; x += 1 {
+				DrawTexelPhongShaded(
+					x,
+					y,
+					v1,
+					v2,
+					v3,
+					n1,
+					n2,
+					n3,
+					uv1,
+					uv2,
+					uv3,
+					p1,
+					p2,
+					p3,
+					texture,
+					light,
+					zBuffer,
+					ambient,
+				)
 			}
 		}
 
@@ -460,6 +742,118 @@ DrawTexturedUnlit :: proc(
 
 		DrawTexturedTriangleFlatShaded(&p1, &p2, &p3, &uv1, &uv2, &uv3, texture, 1.0, zBuffer)
 
+	}
+}
+
+DrawPhongShaded :: proc(
+	vertices: []Vector3,
+	triangles: []Triangle,
+	normals: []Vector3,
+	light: Light,
+	color: rl.Color,
+	zBuffer: ^ZBuffer,
+	projMat: Matrix4x4,
+	ambient: f32 = 0.2,
+) {
+
+	for &tri in triangles {
+		v1 := vertices[tri[0]]
+		v2 := vertices[tri[1]]
+		v3 := vertices[tri[2]]
+
+		n1 := normals[tri[6]]
+		n2 := normals[tri[7]]
+		n3 := normals[tri[8]]
+
+
+		if IsBackFace(v1, v2, v3) {
+			continue
+		}
+
+		p1 := ProjectToScreen(projMat, v1)
+		p2 := ProjectToScreen(projMat, v2)
+		p3 := ProjectToScreen(projMat, v3)
+
+		if IsFaceOutsideFrustum(p1, p2, p3) {
+			continue
+		}
+
+
+		DrawTrianglePhongShaded(
+			&v1,
+			&v2,
+			&v3,
+			&p1,
+			&p2,
+			&p3,
+			&n1,
+			&n2,
+			&n3,
+			color,
+			light,
+			zBuffer,
+			ambient,
+		)
+	}
+}
+
+DrawTexturedPhongShaded :: proc(
+	vertices: []Vector3,
+	triangles: []Triangle,
+	uvs: []Vector2,
+	normals: []Vector3,
+	light: Light,
+	texture: Texture,
+	zBuffer: ^ZBuffer,
+	projMat: Matrix4x4,
+	ambient: f32 = 0.2,
+) {
+
+	for &tri in triangles {
+		v1 := vertices[tri[0]]
+		v2 := vertices[tri[1]]
+		v3 := vertices[tri[2]]
+
+		uv1 := uvs[tri[3]]
+		uv2 := uvs[tri[4]]
+		uv3 := uvs[tri[5]]
+
+		n1 := normals[tri[6]]
+		n2 := normals[tri[7]]
+		n3 := normals[tri[8]]
+
+
+		if IsBackFace(v1, v2, v3) {
+			continue
+		}
+
+		p1 := ProjectToScreen(projMat, v1)
+		p2 := ProjectToScreen(projMat, v2)
+		p3 := ProjectToScreen(projMat, v3)
+
+		if IsFaceOutsideFrustum(p1, p2, p3) {
+			continue
+		}
+
+
+		DrawTexturedTrianglePhongShaded(
+			&v1,
+			&v2,
+			&v3,
+			&p1,
+			&p2,
+			&p3,
+			&uv1,
+			&uv2,
+			&uv3,
+			&n1,
+			&n2,
+			&n3,
+			texture,
+			light,
+			zBuffer,
+			ambient,
+		)
 	}
 }
 

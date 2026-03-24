@@ -30,7 +30,7 @@ main :: proc() {
 		FAR_PLANE,
 	)
 
-	light := MakeLight({0, 1, 0}, 1)
+	light := MakeLight(camera.position, {0, 1, 0}, 1)
 
 	texture := LoadTextureFromFile("assets/uv_checker_512.png")
 
@@ -48,6 +48,7 @@ main :: proc() {
 		viewMatrix = Mat4Mul(viewMatrix, modelMatrix)
 
 		ApplyTransformations(&mesh.transformedVertices, mesh.vertices, viewMatrix)
+		ApplyTransformations(&mesh.transformedNormals, mesh.vertices, viewMatrix)
 
 		rl.BeginDrawing()
 
@@ -106,8 +107,31 @@ main :: proc() {
 				zBuffer,
 				projectionMatrix,
 			)
+		case 6:
+			DrawPhongShaded(
+				mesh.transformedVertices,
+				mesh.triangles,
+				mesh.transformedNormals,
+				light,
+				rl.WHITE,
+				zBuffer,
+				projectionMatrix,
+			)
+		case 7:
+			DrawTexturedPhongShaded(
+				mesh.transformedVertices,
+				mesh.triangles,
+				mesh.uvs,
+				mesh.transformedNormals,
+				light,
+				texture,
+				zBuffer,
+				projectionMatrix,
+			)
 		}
 
+
+		rl.DrawFPS(10, 10)
 
 		rl.EndDrawing()
 		rl.ClearBackground(rl.BLACK)
